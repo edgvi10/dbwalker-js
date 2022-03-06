@@ -1,13 +1,16 @@
-import mysql from 'serverless-mysql';
+// import mysql from 'serverless-mysql';
+const mysql = require('serverless-mysql');
 
-export default class DBWalker {
+// export default class DBWalker {
+class DBWalker {
     constructor(connect_params) {
         if (connect_params) {
             const params = {};
             if (connect_params.host) [params.host, params.port] = connect_params.host.split(":");
+            if (connect_params.port) params.port = parseInt(connect_params.port);
             if (connect_params.user) params.user = connect_params.user;
-            if (connect_params.password) params.password = connect_params.pass;
-            if (connect_params.database) params.database = connect_params.base;
+            if (connect_params.pass) params.password = connect_params.pass;
+            if (connect_params.base) params.database = connect_params.base;
             if (!params.port) params.port = 3306;
 
             this.db = mysql({ config: connect_params });
@@ -37,23 +40,6 @@ export default class DBWalker {
 
         await this.db.end();
         return result;
-    }
-
-    async execute(query) {
-        const $return = {};
-        try {
-            const result = await this.db.query(query);
-            $return.success = true;
-            $return.data = result;
-
-        } catch (error) {
-            $return.success = false;
-            console.log(error);
-            $return.error = { code: error.code, message: error.sqlMessage, sql: error.sql };
-        }
-
-        await this.db.end();
-        return $return;
     }
 
     async run() {
@@ -320,6 +306,10 @@ export default class DBWalker {
         return query;
     }
 
+    toString() {
+        return this.sql;
+    }
+
     // execute options
     select(params, debug = false) {
         if (typeof params === "string") this.sql = params;
@@ -349,3 +339,5 @@ export default class DBWalker {
         return this;
     }
 }
+
+module.exports = DBWalker;

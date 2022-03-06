@@ -1,10 +1,10 @@
 {
   "name": "dbwalker",
   "description": "Library to walking on database using serverless-mysql.",
-  "version": "0.0.6",
-  "type": "module",
+  "version": "0.0.19",
+  "type": "commonjs",
   "main": "dbwalker.js",
-  "exports": "./dbwalker",
+  "exports": "./dbwalker.js",
   "author": "Eduardo Vieira <edgvi10@gmail.com>",
   "license": "MIT",
   "repository": {
