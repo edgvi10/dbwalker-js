@@ -1,0 +1,16 @@
+{
+  "name": "dbwalker",
+  "description": "Library for walking a database using serverless-mysql.",
+  "version": "0.0.5",
+  "type": "module",
+  "main": "dbwalker.js",
+  "author": "Eduardo Vieira <edgvi10@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/edgvi10/dbwalker-js.git"
+  },
+  "dependencies": {
+    "serverless-mysql": "^1.5.4"
+  }
+}
