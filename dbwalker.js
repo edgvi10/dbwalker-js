@@ -1,7 +1,6 @@
 // import mysql from 'serverless-mysql';
 const mysql = require('serverless-mysql');
 
-// export default class DBWalker {
 class DBWalker {
     constructor(connect_params) {
         if (connect_params) {
@@ -13,7 +12,7 @@ class DBWalker {
             if (connect_params.base) params.database = connect_params.base;
             if (!params.port) params.port = 3306;
 
-            this.db = mysql({ config: connect_params });
+            this.db = mysql({ config: params });
         } else {
             this.db = mysql({
                 config: {
