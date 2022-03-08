@@ -14,11 +14,11 @@ const db = new DBWalker();
 
 Env variables:
 ```env
-DB_HOST=
-DB_PORT=
-DB_USER=
-DB_PASS=
-DB_BASE=
+DBWALKER_HOST=
+DBWALKER_PORT=
+DBWALKER_USER=
+DBWALKER_PASS=
+DBWALKER_BASE=
 ```
 
 ---

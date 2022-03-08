@@ -29,29 +29,46 @@ class DBWalker {
     }
 
     async query(sql, params) {
-        var result;
         try {
-            result = await this.db.query(sql, params);
+            const result = await this.db.query(sql, params);
+            await this.db.end();
+            return result;
         } catch (error) {
-            console.log(error);
-            result = { code: error.code, message: error.sqlMessage, sql: error.sql };
-        }
+            console.log("[DB WALKER] query() ", error.message);
+            const result = {};
+            if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
+                error.code = "ACCESS DENIED";
+                error.message = error.message.split("ER_ACCESS_DENIED_ERROR: ")[1].trim();
+            }
 
-        await this.db.end();
-        return result;
+            if (error.code) result.code = error.code;
+            result.message = error.sqlMessage || error.message;
+            result.sql = sql;
+
+            throw result;
+        }
     }
 
     async run() {
         const result = {};
         try {
-            const result = await this.db.query(this.sql, this.values);
+            const data = await this.db.query(this.sql, this.values);
             result.success = true;
-            result.data = result;
+            if (data.affectedRows) result.affected_rows = data.affectedRows;
+            result.data = data.map(row => { return { ...row }; });
 
         } catch (error) {
             result.success = false;
-            console.log("[DB WALKER] ", error);
-            result.error = { code: error.code, message: error.sqlMessage, sql: error.sql };
+            console.log("[DB WALKER] query() ", error);
+
+            if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
+                error.code = "ACCESS DENIED";
+                error.message = error.message.split("ER_ACCESS_DENIED_ERROR: ")[1].trim();
+            }
+
+            if (error.code) result.code = error.code;
+            result.message = error.sqlMessage || error.message;
+            result.sql = this.sql;
         }
 
         await this.db.end();

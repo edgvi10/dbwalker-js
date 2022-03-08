@@ -7,9 +7,6 @@
   "exports": "./dbwalker.js",
   "author": "Eduardo Vieira <edgvi10@gmail.com>",
   "license": "MIT",
-  "scripts": {
-    "publish": "npm version patch && npm publish"
-  },
   "repository": {
     "type": "git",
     "url": "git://github.com/edgvi10/dbwalker-js.git"
