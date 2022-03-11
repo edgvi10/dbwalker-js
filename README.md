@@ -35,10 +35,10 @@ You can use `select()`, `insert()`, `update()`, `delete()` methods to build your
 To execute your query, just start with `await` and `.run()` at last:
 
 ```js
-const select = await db.select({table: "table"});
+const select = await db.select({table: "table", ?columns, ?joins, ?where, ?group_by, ?order_by, ?limit, ?offset});
 const insert = await db.insert({table: "table", data: {param: "value"}});
-const update = await db.update({table: "table", data: {param: "value"}, where: ["param = 'value'"]});
-const delete = await db.delete({table: "table", where: ["param = 'value'"]});
+const update = await db.update({table: "table", ?joins, data: {param: "value"}, where: ["param = 'value'"]});
+const delete = await db.delete({table: "table", ?joins, where: ["param = 'value'"]});
 ```
 
 To return sql query, you can use `.toString()` method:
