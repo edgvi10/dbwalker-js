@@ -3,6 +3,7 @@ const mysql = require('serverless-mysql');
 
 class DBWalker {
     constructor(connect_params) {
+
         if (connect_params) {
             const params = {};
             if (connect_params.host) [params.host, params.port] = connect_params.host.split(":");
@@ -54,8 +55,9 @@ class DBWalker {
         try {
             const data = await this.db.query(this.sql, this.values);
             result.success = true;
+            if (data.insertId) result.insertId = data.insertId;
             if (data.affectedRows) result.affected_rows = data.affectedRows;
-            result.data = data.map(row => { return { ...row }; });
+            else result.data = Object.values(data);
 
         } catch (error) {
             result.success = false;
