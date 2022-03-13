@@ -60,7 +60,6 @@ class QueryBuilder {
     }
 
     getValue(value, accepted_functions = []) {
-        // console.log(value, value.slice(0, 1), value.slice(-1));
         accepted_functions = [...accepted_functions, "NOW", "CURDATE", "CURTIME", "UNIX_TIMESTAMP", "MD5", "SHA1", "SHA2", "RAND", "LENGTH", "LOWER", "UPPER", "SUBSTRING", "CONCAT", "CONCAT_WS", "REPLACE", "TRIM", "LEFT", "RIGHT", "LTRIM", "RTRIM"];
 
         if (accepted_functions.indexOf(value.toUpperCase().split("(")[0]) > -1)

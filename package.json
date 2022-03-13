@@ -1,20 +1,29 @@
 {
-  "name": "dbwalker",
-  "description": "Library to walking on database using serverless-mysql.",
-  "version": "0.0.27",
-  "type": "commonjs",
-  "main": "dbwalker.js",
-  "exports": "./dbwalker.js",
-  "author": "Eduardo Vieira <edgvi10@gmail.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/edgvi10/dbwalker-js.git"
-  },
-  "dependencies": {
-    "serverless-mysql": "^1.5.4"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.15"
-  }
+    "name": "dbwalker",
+    "description": "Library to walking on database using serverless-mysql.",
+    "version": "0.0.27",
+    "type": "commonjs",
+    "main": "dbwalker.js",
+    "exports": "./dbwalker.js",
+    "author": "Eduardo Vieira <edgvi10@gmail.com>",
+    "license": "MIT",
+    "keywords": [
+        "mysql",
+        "serverless",
+        "sql",
+        "database",
+        "object-like",
+        "query builder",
+        "sql builder"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/edgvi10/dbwalker-js.git"
+    },
+    "dependencies": {
+        "serverless-mysql": "^1.5.4"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.15"
+    }
 }
