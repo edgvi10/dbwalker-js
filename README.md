@@ -2,7 +2,9 @@
 
 The most flexible MySQL query builder, using [serverless-mysql](https://www.npmjs.com/package/serverless-mysql) to run and retrieve data.
 
-You can use objects, arrays and strings to build your query using easy-to-understand methods.
+[![Rate this package](https://badges.openbase.com/js/rating/dbwalker.svg?token=NUVwNWBH2PA1GzC6N42h+UkjwU81AVGjpsBu8/tE7V4=)](https://openbase.com/js/dbwalker?utm_source=embedded&amp;utm_medium=badge&amp;utm_campaign=rate-badge) [![dbwalker Versions](https://badges.openbase.com/js/versions/dbwalker.svg?token=NUVwNWBH2PA1GzC6N42h+UkjwU81AVGjpsBu8/tE7V4=)](https://openbase.com/js/dbwalker?utm_source=embedded&amp;utm_medium=badge&amp;utm_campaign=rate-badge)
+
+You can use objects, arrays and strings to build your queries using easy-to-understand methods.
 
 > IMPORTANT: this library is under development and stil in alpha. It's a very useful, but I don't recommend using it without a supervision.
 
