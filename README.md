@@ -1,18 +1,27 @@
-# Library to walking on database using serverless-mysql
+# A Library to walk the database using serverless-mysql
 
-You can build MySQL queries delivering an object as param and run using [serverless-mysql](https://www.npmjs.com/package/serverless-mysql).
+The most flexible MySQL query builder, using [serverless-mysql](https://www.npmjs.com/package/serverless-mysql) to run and retrieve data.
+
+You can use objects, arrays and strings to build your query using easy-to-understand methods.
+
+> IMPORTANT: this library is under development and stil in alpha. It's a very useful, but I don't recommend using it without a supervision.
 
 ## Connection
 
-To connect to database, you need to pass the following parameters:
+You can connect to the database in the following ways:
 ```js
+// using a connection string
+const db = new DBWalker("mysql://user:pass@host:port/base");
 // parsing inline connection data
-const db = new DBWalker({host,user,pass,base});
-// OR get from ".env" file
+const db = new DBWalker({ host, ?port, user, pass, base });
+// using array of connection data
+const db = new DBWalker([host, ?port, user, pass, base]); // my fav to testing
+// getting from ".env" file
 const db = new DBWalker();
 ```
 
-Env variables:
+`.env` variables:
+
 ```env
 DBWALKER_HOST=
 DBWALKER_PORT=
@@ -21,13 +30,20 @@ DBWALKER_PASS=
 DBWALKER_BASE=
 ```
 
+Or `.env` variable string:
+
+```env
+DBWALKER_STRING="mysql://user:pass@host:port/base"
+```
+
 ---
 
 ## Usage
 
 Raw SQL example:
 ```js
-const raw = db.query("SELECT `alias`.* FROM `database`.`table` AS `alias` WHERE `alias`.`param` = ?", ["value"]);
+const raw = db.query("SELECT `alias`.* FROM `database`.`table` AS `alias` WHERE `alias`.`param` = ? ORDER BY ?", ["value", "field"]);
+// SELECT `alias`.* FROM `database`.`table` AS `alias` WHERE `alias`.`param` = 'value' ORDER BY field
 ```
 
 You can use `select()`, `insert()`, `update()`, `delete()` methods to build your queries.

@@ -1,32 +1,72 @@
 // import mysql from 'serverless-mysql';
 const mysql = require('serverless-mysql');
+const { format } = require('sql-formatter');
 const QueryBuilder = require('./querybuilder');
+require('dotenv').config();
+
 
 class DBWalker extends QueryBuilder {
     constructor(connect_params) {
-        if (connect_params) {
-            const params = {};
-            if (connect_params.host) [params.host, params.port] = connect_params.host.split(":");
-            if (connect_params.port) params.port = parseInt(connect_params.port);
-            if (connect_params.user) params.user = connect_params.user;
-            if (connect_params.pass) params.password = connect_params.pass;
-            if (connect_params.base) params.database = connect_params.base;
+        if (connect_params) { // from params
+            var params = {};
+
+            if (typeof connect_params === "string") {
+                params = this.getConnectionFromString(connect_params);
+            } else if (typeof connect_params === "object") {
+                if (connect_params.host) [params.host, params.port] = connect_params.host.split(":");
+                if (connect_params.port) params.port = parseInt(connect_params.port);
+                if (connect_params.user) params.user = connect_params.user;
+                if (connect_params.pass) params.password = connect_params.pass;
+                if (connect_params.base) params.database = connect_params.base;
+            } else if (typeof connect_params === "array") {
+                // check if second param is port or user
+                params.host = connect_params[0];
+                if (typeof connect_params[1] === "number") {
+                    params.port = connect_params[1];
+                    params.user = connect_params[2];
+                    params.password = connect_params[3];
+                    params.database = connect_params[4];
+                } else {
+                    params.user = connect_params[1];
+                    params.password = connect_params[2];
+                    params.database = connect_params[3];
+                }
+            }
+
             if (!params.port) params.port = 3306;
 
             this.db = mysql({ config: params });
-        } else {
-            this.db = mysql({
-                config: {
-                    host: process.env.DBWALKER_HOST,
-                    port: process.env.DBWALKER_PORT ?? 3306,
-                    user: process.env.DBWALKER_USER,
-                    password: process.env.DBWALKER_PASS,
-                    database: process.env.DBWALKER_BASE,
-                }
-            });
+        } else { // from .env
+            if (process.env.DBWALKER_STRING)
+                this.db = mysql({
+                    config: {
+                        host: process.env.DBWALKER_HOST,
+                        port: process.env.DBWALKER_PORT ?? 3306,
+                        user: process.env.DBWALKER_USER,
+                        password: process.env.DBWALKER_PASS,
+                        database: process.env.DBWALKER_BASE,
+                    }
+                });
         }
 
         return this;
+    }
+
+    getConnectionFromString(str) {
+        const params = {};
+        const pattern = /mysql:\/\/([^:]+):([^@]+)@([^:]+):([0-9]+)\/([a-z0-9_]+)/;
+        const match = connect_params.match(pattern);
+        if (match) {
+            params.host = match[3];
+            params.port = match[4];
+            params.user = match[1];
+            params.password = match[2];
+            params.database = match[5];
+        } else {
+            throw new Error("Invalid connection string");
+            return;
+        }
+        return params;
     }
 
     async query(sql, params) {
@@ -82,8 +122,13 @@ class DBWalker extends QueryBuilder {
         return;
     }
 
+
     toString() {
         return this.sql;
+    }
+
+    format() {
+        return format(this.sql);
     }
 
     // execute options

@@ -1,3 +1,5 @@
+const { format } = require("sql-formatter");
+
 class QueryBuilder {
     escapeString(str) {
         return str.toString().replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char) {
@@ -136,7 +138,7 @@ class QueryBuilder {
                 const join_params = [];
                 join_params.push((condition.type ? condition.type.toUpperCase() : "LEFT") + " JOIN");
                 join_params.push(this.tableName(condition.table).fullname);
-                if (condition.on) join_params.push(`ON ` + this.buildWhere(condition.on));
+                if (condition.on) join_params.push(`ON (` + this.buildWhere(condition.on) + `)`);
                 if (condition.using) join_params.push(`USING (${condition.using})`);
 
                 query_join_params.push(join_params.join(" "));
@@ -157,12 +159,67 @@ class QueryBuilder {
         return query_join_params.length ? query_join_params.join(" ") : null;
     }
 
+    getFields(raw_fields) {
+        const fields = [];
+
+        if (typeof raw_fields === "string") {
+            fields.push(raw_fields);
+        } else if (Array.isArray(raw_fields)) {
+            raw_fields.map(field => {
+                if (typeof field === "string") {
+                    fields.push(field);
+                } else if (typeof field === "object") {
+                    fields.push(`${field.field} AS \`${field.alias}\``);
+                }
+            });
+        } else if (typeof raw_fields === "object") {
+            Object.keys(raw_fields).map(key => {
+                if (typeof raw_fields[key] === "string") {
+                    fields.push(`${raw_fields[key]} AS \`${key}\``);
+                } else if (typeof raw_fields[key] === "object") {
+                    Object.keys(raw_fields[key]).map(fn => {
+                        var default_fn;
+                        if (typeof raw_fields[key][fn] === "string") {
+                            var value = raw_fields[key][fn];
+                            value = value.split(".").join("`.`");
+
+                            default_fn = `${fn.toUpperCase()}(\`${value}\`) AS \`${key}\``;
+                        } else {
+                            var values = raw_fields[key].group_concat;
+                            if (typeof values === "string") values = [values];
+
+                            values = values.map(value => {
+                                value = value.split(".").join("`.`");
+                                return `\`${value}\``;
+                            }).join(", ");
+                        }
+
+                        switch (fn) {
+                            case "count_distinct": fields.push(`COUNT(DISTINCT \`${value}\`) AS \`${key}\``); break;
+                            case "concat": fields.push(`CONCAT(\`${values}\`) AS \`${key}\``); break;
+                            case "group_concat": fields.push(`GROUP_CONCAT(${values}) AS \`${key}\``); break;
+                            default: fields.push(default_fn); break
+                        }
+
+                    });
+                }
+            });
+        }
+
+        return fields;
+    }
+
+    format(query) {
+        return format(query, { language: "mysql", indent: "    ", uppercase: true });
+    }
+
     // builder options
     buildSelect(params, debug = false) {
         const table = this.tableName(params.table);
 
-        var columns = [`\`${table.alias ?? table.name}\`.*`];
-        if (params.fields || params.columns) columns = params.columns ?? params.fields;
+        var columns = [];
+        if (params.fields) columns = this.getFields(params.fields);
+        if (columns.length === 0) columns = [`\`${table.alias ?? table.name}\`.*`];
 
         const joins = params.joins ?? [];
         const where = params.where ?? [];
@@ -194,7 +251,7 @@ class QueryBuilder {
         const query = `SELECT ${query_columns} FROM ${query_table} ${query_params.join(" ")}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
+        if (debug) console.log("query", this.format(query));
 
         return query;
     }
@@ -233,7 +290,7 @@ class QueryBuilder {
         const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(',\n')}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
+        if (debug) console.log("query", format(query));
 
         return query;
     }
@@ -269,7 +326,7 @@ class QueryBuilder {
         const query = `UPDATE ${query_table} ${query_params.join("  ")}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
+        if (debug) console.log("query", format(query));
 
         return query;
     }
@@ -295,7 +352,7 @@ class QueryBuilder {
         const query = `DELETE FROM ${query_table} ${query_params.join(" ")}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
+        if (debug) console.log("query", format(query));
 
         return query;
     }
