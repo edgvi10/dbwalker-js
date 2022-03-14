@@ -185,22 +185,19 @@ class QueryBuilder {
 
                             default_fn = `${fn.toUpperCase()}(\`${value}\`) AS \`${key}\``;
                         } else {
-                            var values = raw_fields[key].group_concat;
+                            console.log(raw_fields[key][fn]);
+                            var values = raw_fields[key][fn];
                             if (typeof values === "string") values = [values];
 
-                            values = values.map(value => {
-                                value = value.split(".").join("`.`");
-                                return `\`${value}\``;
-                            }).join(", ");
+                            values = values.join(", ");
                         }
 
                         switch (fn) {
                             case "count_distinct": fields.push(`COUNT(DISTINCT \`${value}\`) AS \`${key}\``); break;
-                            case "concat": fields.push(`CONCAT(\`${values}\`) AS \`${key}\``); break;
+                            case "concat": fields.push(`CONCAT(${values}) AS \`${key}\``); break;
                             case "group_concat": fields.push(`GROUP_CONCAT(${values}) AS \`${key}\``); break;
                             default: fields.push(default_fn); break
                         }
-
                     });
                 }
             });
@@ -290,7 +287,7 @@ class QueryBuilder {
         const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(',\n')}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", format(query));
+        if (debug) console.log("query", this.format(query));
 
         return query;
     }
@@ -326,7 +323,7 @@ class QueryBuilder {
         const query = `UPDATE ${query_table} ${query_params.join("  ")}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", format(query));
+        if (debug) console.log("query", this.format(query));
 
         return query;
     }
@@ -352,7 +349,7 @@ class QueryBuilder {
         const query = `DELETE FROM ${query_table} ${query_params.join(" ")}`.trim();
 
         if (debug) console.log("params", params);
-        if (debug) console.log("query", format(query));
+        if (debug) console.log("query", this.format(query));
 
         return query;
     }
