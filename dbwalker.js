@@ -7,6 +7,7 @@ require('dotenv').config();
 
 class DBWalker extends QueryBuilder {
     constructor(connect_params) {
+        super();
         if (connect_params) { // from params
             var params = {};
 
@@ -37,16 +38,16 @@ class DBWalker extends QueryBuilder {
 
             this.db = mysql({ config: params });
         } else { // from .env
-            if (process.env.DBWALKER_STRING)
-                this.db = mysql({
-                    config: {
-                        host: process.env.DBWALKER_HOST,
-                        port: process.env.DBWALKER_PORT ?? 3306,
-                        user: process.env.DBWALKER_USER,
-                        password: process.env.DBWALKER_PASS,
-                        database: process.env.DBWALKER_BASE,
-                    }
-                });
+            if (process.env.DBWALKER_STRING) this.db = mysql({ config: this.getConnectionFromString(process.env.DBWALKER_STRING) });
+            else this.db = mysql({
+                config: {
+                    host: process.env.DBWALKER_HOST,
+                    port: process.env.DBWALKER_PORT ?? 3306,
+                    user: process.env.DBWALKER_USER,
+                    password: process.env.DBWALKER_PASS,
+                    database: process.env.DBWALKER_BASE,
+                }
+            });
         }
 
         return this;
@@ -55,7 +56,7 @@ class DBWalker extends QueryBuilder {
     getConnectionFromString(str) {
         const params = {};
         const pattern = /mysql:\/\/([^:]+):([^@]+)@([^:]+):([0-9]+)\/([a-z0-9_]+)/;
-        const match = connect_params.match(pattern);
+        const match = str.match(pattern);
         if (match) {
             params.host = match[3];
             params.port = match[4];
