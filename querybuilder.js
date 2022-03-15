@@ -216,6 +216,8 @@ class QueryBuilder {
 
         var columns = [];
         if (params.fields) columns = this.getFields(params.fields);
+        else if (params.columns) columns = this.getFields(params.columns);
+
         if (columns.length === 0) columns = [`\`${table.alias ?? table.name}\`.*`];
 
         const joins = params.joins ?? [];
