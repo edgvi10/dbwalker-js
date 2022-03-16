@@ -62,20 +62,29 @@ class QueryBuilder {
     }
 
     getValue(value, accepted_functions = []) {
-        accepted_functions = [...accepted_functions, "NOW", "CURDATE", "CURTIME", "UNIX_TIMESTAMP", "MD5", "SHA1", "SHA2", "RAND", "LENGTH", "LOWER", "UPPER", "SUBSTRING", "CONCAT", "CONCAT_WS", "REPLACE", "TRIM", "LEFT", "RIGHT", "LTRIM", "RTRIM"];
+        accepted_functions = [...accepted_functions, "UUID", "DATE", "NOW", "CURDATE", "CURTIME", "UNIX_TIMESTAMP", "MD5", "SHA1", "SHA2", "RAND", "LENGTH", "LOWER", "UPPER", "SUBSTRING", "CONCAT", "CONCAT_WS", "REPLACE", "TRIM", "LEFT", "RIGHT", "LTRIM", "RTRIM"];
 
-        if (accepted_functions.indexOf(value.toUpperCase().split("(")[0]) > -1)
-            return value;
-        else if (value.slice(0, 1) === "'" && value.slice(-1) === "'")
-            return value;
+        const regex = new RegExp(`^(${accepted_functions.join("|")})\((.*)\)$`, "i");
+        const is_function = regex.test(value);
 
+        if (is_function) {
+            const [, func, args] = value.match(regex);
+            return `${func.toUpperCase()}${args}`;
+        }
 
-        switch (typeof value) {
-            case "string": value = (value.slice(0, 1) === "`" && value.slice(-1) === "`") ? value : "'" + this.escapeString(value) + "'"; break;
-            case "number": value = parseFloat(value); break;
-            case "null": value = "NULL"; break;
-            case "boolean": value = value ? 1 : 0; break;
-            default: value = "''"; break;
+        if (value instanceof Date) {
+            return `'${value.toISOString().toString().replace(/[T]/g, " ").slice(0, -5)}'`;
+        } else if (typeof value === "object") {
+            const key = Object.keys(value)[0];
+            if (accepted_functions.includes(key.toUpperCase()))
+                return `${key.toUpperCase()}(${this.getValue(value[key])})`;
+        } else {
+            switch (typeof value) {
+                case "string": value = (value.slice(0, 1) === "`" && value.slice(-1) === "`") ? value : "'" + this.escapeString(value) + "'"; break;
+                case "number": value = parseFloat(value); break;
+                case "null": value = "NULL"; break;
+                case "boolean": value = value ? 1 : 0; break;
+            }
         }
 
         return value;
@@ -85,7 +94,9 @@ class QueryBuilder {
         var param = [];
 
         Object.keys(params).map(key => {
+            // console.log(key);
             if (key === "field") param.push(`\`${this.trim(params[key], "`")}\``);
+
             else if (key === "is") param.push("= " + this.getValue(params[key]));
             else if (key === "not_is") param.push("!= " + this.getValue(params[key]));
             else if (key === "like") param.push("LIKE '%" + this.trim(this.escapeString(params[key]), "%") + "%'");
@@ -93,7 +104,7 @@ class QueryBuilder {
             else if (key === "start_with") param.push("LIKE '" + this.escapeString(params[key]) + "%'");
             else if (key === "end_with") param.push("LIKE '%" + this.escapeString(params[key]) + "'");
             else if (key === "in") param.push("IN (" + this.getValue(params[key]) + ")");
-            else if (key === "not_in") param.push("NOT IN (" + this.getValue(params[key]) + ")");
+            else if (key === "not_in") param.push("NOT IN (" + params[key].map(item => this.getValue(item)).join(",") + ")");
             else if (key === "between") param.push("BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
             else if (key === "not_between") param.push("NOT BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
             else if (key === "is_null") param.push(`\`${params[key].trim("`")}\` IS NULL`);
@@ -185,7 +196,6 @@ class QueryBuilder {
 
                             default_fn = `${fn.toUpperCase()}(\`${value}\`) AS \`${key}\``;
                         } else {
-                            console.log(raw_fields[key][fn]);
                             var values = raw_fields[key][fn];
                             if (typeof values === "string") values = [values];
 
@@ -195,7 +205,7 @@ class QueryBuilder {
                         switch (fn) {
                             case "count_distinct": fields.push(`COUNT(DISTINCT \`${value}\`) AS \`${key}\``); break;
                             case "concat": fields.push(`CONCAT(${values}) AS \`${key}\``); break;
-                            case "group_concat": fields.push(`GROUP_CONCAT(${values}) AS \`${key}\``); break;
+                            case "group_concat": fields.push(`GROUP_CONCAT(${value}) AS \`${key}\``); break;
                             default: fields.push(default_fn); break
                         }
                     });
@@ -218,7 +228,7 @@ class QueryBuilder {
         if (params.fields) columns = this.getFields(params.fields);
         else if (params.columns) columns = this.getFields(params.columns);
 
-        if (columns.length === 0) columns = [`\`${table.alias ?? table.name}\`.*`];
+        if (columns.length === 0) columns = [`${table.alias ?? table.name}.*`];
 
         const joins = params.joins ?? [];
         const where = params.where ?? [];
@@ -249,8 +259,8 @@ class QueryBuilder {
 
         const query = `SELECT ${query_columns} FROM ${query_table} ${query_params.join(" ")}`.trim();
 
-        if (debug) console.log("params", params);
-        if (debug) console.log("query", this.format(query));
+        // if (debug) console.log("params", params);
+        if (debug) console.log("query", query);
 
         return query;
     }
@@ -286,10 +296,10 @@ class QueryBuilder {
             return "data is empty";
         }
 
-        const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(',\n')}`.trim();
+        const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(",\n")}`.trim();
 
-        if (debug) console.log("params", params);
-        if (debug) console.log("query", this.format(query));
+        // if (debug) console.log("params", params);
+        if (debug) console.log("query", query);
 
         return query;
     }
@@ -324,8 +334,8 @@ class QueryBuilder {
 
         const query = `UPDATE ${query_table} ${query_params.join("  ")}`.trim();
 
-        if (debug) console.log("params", params);
-        if (debug) console.log("query", this.format(query));
+        // if (debug) console.log("params", params);
+        if (debug) console.log("query", query);
 
         return query;
     }
@@ -350,8 +360,8 @@ class QueryBuilder {
 
         const query = `DELETE FROM ${query_table} ${query_params.join(" ")}`.trim();
 
-        if (debug) console.log("params", params);
-        if (debug) console.log("query", this.format(query));
+        // if (debug) console.log("params", params);
+        if (debug) console.log("query", query);
 
         return query;
     }

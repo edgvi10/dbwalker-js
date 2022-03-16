@@ -96,13 +96,18 @@ class DBWalker extends QueryBuilder {
         try {
             const data = await this.db.query(this.sql, this.values);
             result.success = true;
-            if (data.insertId) result.insertId = data.insertId;
+            if (data.insertId) result.insert_id = data.insertId;
             if (data.affectedRows) result.affected_rows = data.affectedRows;
 
-            if (!data.insertId && !data.affectedRows) result.data = Object.values(data);
+            if (!data.insertId && !data.affectedRows) {
+                result.rows = Object.values(data).length;
+                result.data = Object.values(data).map(row => {
+                    return { ...row }
+                });
+            }
         } catch (error) {
             result.success = false;
-            console.log("[DB WALKER] query() ", error);
+            // console.log("[DB WALKER] query() ", error);
 
             if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
                 error.code = "ACCESS DENIED";
@@ -112,6 +117,7 @@ class DBWalker extends QueryBuilder {
             if (error.code) result.code = error.code;
             result.message = error.sqlMessage || error.message;
             result.sql = this.sql;
+            throw result;
         }
 
         await this.db.end();
@@ -123,7 +129,6 @@ class DBWalker extends QueryBuilder {
         return;
     }
 
-
     toString() {
         return this.sql;
     }
@@ -132,8 +137,33 @@ class DBWalker extends QueryBuilder {
         return format(this.sql);
     }
 
+    async describe(table_name) {
+        if (!table_name) throw new Error("Table name is required");
+        const raw = await this.query(`DESCRIBE ${this.tableName(table_name).fullname}`);
+        const result = [];
+        raw.forEach(row => {
+            // console.log(row);
+            const field = {};
+            field.name = row.Field;
+            field.type = row.Type.toUpperCase();
+            field.nullable = (row.Null === "YES");
+            field.key = row.Key || null;
+            if (row.Key === "PRI") field.key = "PRIMARY";
+            if (row.Key === "UNI") field.key = "UNIQUE";
+            if (row.Extra === "auto_increment") field.auto_increment = true;
+
+            field.default = row.Default;
+            field.extra = row.Extra;
+
+            result.push(field);
+        });
+
+        return result;
+    }
+
     // execute options
     select(params, debug = false) {
+        this.debug = debug;
         if (typeof params === "string") this.sql = params;
         else this.sql = this.buildSelect(params, debug);
 
@@ -141,6 +171,7 @@ class DBWalker extends QueryBuilder {
     }
 
     insert(params, debug = false) {
+        this.debug = debug;
         if (typeof params === "string") this.sql = params;
         else this.sql = this.buildInsert(params, debug);
 
@@ -148,6 +179,7 @@ class DBWalker extends QueryBuilder {
     }
 
     update(params, debug = false) {
+        this.debug = debug;
         if (typeof params === "string") this.sql = params;
         else this.sql = this.buildUpdate(params, debug);
 
@@ -155,6 +187,7 @@ class DBWalker extends QueryBuilder {
     }
 
     delete(params, debug = false) {
+        this.debug = debug;
         if (typeof params === "string") this.sql = params;
         else this.sql = this.buildDelete(params, debug);
 
