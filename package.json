@@ -1,7 +1,7 @@
 {
     "name": "dbwalker",
     "description": "Library to walking on database using serverless-mysql.",
-    "version": "0.0.33",
+    "version": "0.0.34",
     "type": "commonjs",
     "main": "dbwalker.js",
     "exports": "./dbwalker.js",
