@@ -42,7 +42,7 @@ class DBWalker extends QueryBuilder {
             else this.db = mysql({
                 config: {
                     host: process.env.DBWALKER_HOST,
-                    port: process.env.DBWALKER_PORT ?? 3306,
+                    port: process.env.DBWALKER_PORT ? process.env.DBWALKER_PORT : 3306,
                     user: process.env.DBWALKER_USER,
                     password: process.env.DBWALKER_PASS,
                     database: process.env.DBWALKER_BASE,
@@ -84,7 +84,7 @@ class DBWalker extends QueryBuilder {
             }
 
             if (error.code) result.code = error.code;
-            result.message = error.sqlMessage || error.message;
+            result.message = error.sqlMessage ? error.sqlMessage : error.message;
             result.sql = sql;
 
             throw result;
@@ -115,7 +115,7 @@ class DBWalker extends QueryBuilder {
             }
 
             if (error.code) result.code = error.code;
-            result.message = error.sqlMessage || error.message;
+            result.message = error.sqlMessage ? error.sqlMessage : error.message;
             result.sql = this.sql;
             throw result;
         }
@@ -147,7 +147,7 @@ class DBWalker extends QueryBuilder {
             field.name = row.Field;
             field.type = row.Type.toUpperCase();
             field.nullable = (row.Null === "YES");
-            field.key = row.Key || null;
+            field.key = row.Key ? row.Key : null;
             if (row.Key === "PRI") field.key = "PRIMARY";
             if (row.Key === "UNI") field.key = "UNIQUE";
             if (row.Extra === "auto_increment") field.auto_increment = true;

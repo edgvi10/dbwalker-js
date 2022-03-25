@@ -108,7 +108,7 @@ class QueryBuilder {
             else if (key === "between") param.push("BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
             else if (key === "not_between") param.push("NOT BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
             else if (key === "is_null") param.push(`\`${params[key].trim("`")}\` IS NULL`);
-            else if (key === "not_is_null") param.push(`\`${params[key].trim("`")}\` IS NOT NULL`);
+            else if (key === "not_is_null" || key === "is_not_null") param.push(`\`${params[key].trim("`")}\` IS NOT NULL`);
             else if (key === "is_empty") param.push(`\`${this.trim(params[key], "`")}\` = ''`);
             else if (key === "find_in_set") param.push(`FIND_IN_SET(${this.getValue(params[key])}, \`${this.trim(params["field"], "`")}\`)`);
         });
@@ -145,21 +145,21 @@ class QueryBuilder {
     buildJoin(join_param) {
         const query_join_params = [];
         join_param.map(condition => {
-            if (typeof condition === "object") {
-                const join_params = [];
-                join_params.push((condition.type ? condition.type.toUpperCase() : "LEFT") + " JOIN");
-                join_params.push(this.tableName(condition.table).fullname);
-                if (condition.on) join_params.push(`ON (` + this.buildWhere(condition.on) + `)`);
-                if (condition.using) join_params.push(`USING (${condition.using})`);
-
-                query_join_params.push(join_params.join(" "));
-            } else if (Array.isArray(condition)) {
+            if (Array.isArray(condition)) {
                 const [direction, table, on] = condition;
 
                 const join_params = [];
                 join_params.push(`${direction} JOIN`);
                 join_params.push(this.tableName(table).fullname);
                 join_params.push(`ON (` + this.buildWhere(on) + `)`);
+
+                query_join_params.push(join_params.join(" "));
+            } else if (typeof condition === "object") {
+                const join_params = [];
+                join_params.push((condition.type ? condition.type.toUpperCase() : "LEFT") + " JOIN");
+                join_params.push(this.tableName(condition.table).fullname);
+                if (condition.on) join_params.push(`ON (` + this.buildWhere(condition.on) + `)`);
+                if (condition.using) join_params.push(`USING (${condition.using})`);
 
                 query_join_params.push(join_params.join(" "));
             } else {
@@ -228,14 +228,14 @@ class QueryBuilder {
         if (params.fields) columns = this.getFields(params.fields);
         else if (params.columns) columns = this.getFields(params.columns);
 
-        if (columns.length === 0) columns = [`${table.alias ?? table.name}.*`];
+        if (columns.length === 0) columns = [`${table.alias ? table.alias : table.name}.*`];
 
-        const joins = params.joins ?? [];
-        const where = params.where ?? [];
-        const group_by = params.group_by ?? [];
-        const order_by = params.order_by ?? [];
-        const limit = params.limit ?? null;
-        const offset = params.offset ?? null;
+        const joins = params.joins ? params.joins : [];
+        const where = params.where ? params.where : [];
+        const group_by = params.group_by ? params.group_by : [];
+        const order_by = params.order_by ? params.order_by : [];
+        const limit = params.limit ? params.limit : null;
+        const offset = params.offset ? params.offset : null;
 
         const query_columns_params = Array.isArray(columns) ? columns : [columns];
         const query_joins_params = this.buildJoin(joins);
@@ -316,8 +316,8 @@ class QueryBuilder {
             return "data is empty";
         }
 
-        const joins = params.joins ?? [];
-        const where = params.where ?? [];
+        const joins = params.joins ? params.joins : [];
+        const where = params.where ? params.where : [];
 
         const query_joins_params = this.buildJoin(joins);
         const query_where_params = this.buildWhere(where);
@@ -343,7 +343,7 @@ class QueryBuilder {
     buildDelete(params, debug = false) {
         const table = this.tableName(params.table);
 
-        const joins = params.joins ?? [];
+        const joins = params.joins ? params.joins : [];
         if (!params.where || params.length === 0) return "where is empty";
         const where = params.where;
 
