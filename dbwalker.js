@@ -134,7 +134,7 @@ class DBWalker extends QueryBuilder {
     }
 
     format() {
-        return format(this.sql);
+        return format(this.sql, { language: "mysql" });
     }
 
     async describe(table_name) {
