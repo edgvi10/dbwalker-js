@@ -5,6 +5,7 @@ const QueryBuilder = require('./querybuilder');
 require('dotenv').config();
 
 class DBWalker extends QueryBuilder {
+    #db;
     constructor(connect_params) {
         super();
         if (connect_params) { // from params
@@ -35,10 +36,12 @@ class DBWalker extends QueryBuilder {
 
             if (!params.port) params.port = 3306;
 
-            this.db = mysql({ config: params });
-        } else { // from .env
-            if (process.env.DBWALKER_STRING) this.db = mysql({ config: this.getConnectionFromString(process.env.DBWALKER_STRING) });
-            else this.db = mysql({
+            this.#db = mysql({ config: params });
+        } else {
+            // from .env
+            if (process.env.DBWALKER_STRING)
+                this.#db = mysql({ config: this.getConnectionFromString(process.env.DBWALKER_STRING) });
+            else this.#db = mysql({
                 config: {
                     host: process.env.DBWALKER_HOST,
                     port: process.env.DBWALKER_PORT ? process.env.DBWALKER_PORT : 3306,
@@ -78,10 +81,10 @@ class DBWalker extends QueryBuilder {
         return params;
     }
 
-    async query(sql, params) {
+    async query(sql, values) {
         try {
-            const result = await this.db.query(sql, params);
-            await this.db.end();
+            const result = await this.#db.query(sql, values);
+            await this.#db.end();
             return result;
         } catch (error) {
             console.log("[DB WALKER] query() ", error.message);
@@ -102,7 +105,7 @@ class DBWalker extends QueryBuilder {
     async run() {
         const result = {};
         try {
-            const data = await this.db.query(this.sql, this.values);
+            const data = await this.query(this.sql, this.values);
             result.success = true;
             if (data.insertId) result.insert_id = data.insertId;
             if (data.affectedRows) result.affected_rows = data.affectedRows;
@@ -115,20 +118,9 @@ class DBWalker extends QueryBuilder {
             }
         } catch (error) {
             result.success = false;
-            // console.log("[DB WALKER] query() ", error);
-
-            if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
-                error.code = "ACCESS DENIED";
-                error.message = error.message.split("ER_ACCESS_DENIED_ERROR: ")[1].trim();
-            }
-
-            if (error.code) result.code = error.code;
-            result.message = error.sqlMessage ? error.sqlMessage : error.message;
-            result.sql = this.sql;
             throw result;
         }
 
-        await this.db.end();
         return result;
     }
 
@@ -142,7 +134,7 @@ class DBWalker extends QueryBuilder {
     }
 
     format() {
-        return format(this.sql, { language: "mysql" });
+        return format(this.sql, { language: "mysql", indent: "    " });
     }
 
     async describe(table_name) {
@@ -150,7 +142,6 @@ class DBWalker extends QueryBuilder {
         const raw = await this.query(`DESCRIBE ${this.tableName(table_name).fullname}`);
         const result = [];
         raw.forEach(row => {
-            // console.log(row);
             const field = {};
             field.name = row.Field;
             field.type = row.Type.toUpperCase();
@@ -167,6 +158,11 @@ class DBWalker extends QueryBuilder {
         });
 
         return result;
+    }
+
+    setValues(values) {
+        this.values = values;
+        return this;
     }
 
     // execute options

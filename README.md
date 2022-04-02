@@ -48,89 +48,122 @@ DBWALKER_STRING="mysql://user:pass@host:port/base"
 Raw SQL example:
 ```js
 const raw = db.query("SELECT `alias`.* FROM `database`.`table` AS `alias` WHERE `alias`.`param` = ? ORDER BY ?", ["value", "field"]);
-// SELECT `alias`.* FROM `database`.`table` AS `alias` WHERE `alias`.`param` = 'value' ORDER BY field
 ```
 
 You can use `select()`, `insert()`, `update()`, `delete()` methods to build your queries.
 
-To execute your query, just start with `await` and `.run()` at last:
-
 ```js
-const select = await db.select({table: "table", ?columns[], ?fields{}, ?joins, ?where, ?group_by, ?order_by, ?limit, ?offset});
-const insert = await db.insert({table: "table", data: {param: "value"}});
-const update = await db.update({table: "table", ?joins, data: {param: "value"}, where: ["param = 'value'"]});
-const delete = await db.delete({table: "table", ?joins, where: ["param = 'value'"]});
+const select = await db.select({
+    table: "table", 
+    ?columns: [
+        "table_alias.field_name AS field_alias",
+    ],
+    ?fields: {
+        field_alias: "table.field_name",
+        field_name: "field_name",
+        function_return: "(SELECT GROUP_CONCAT(value) FROM table_other WHERE table_other.field = table.field GROUP BY table_other.field)",
+        other_function_return: "(SELECT other_table.field FROM table_other AS other_table WHERE other_table.field = table.field ORDER BY other_table.field LIMIT 1)",
+    }, 
+    ?joins, 
+    ?where: [
+        "field_name > 8.9", // field_name > 8.9
+        { "field_name": "value" }, // field_name = value
+        { "field_name": true }, // field_name = 1
+        { "field_name": 88.9 }, // field_name = 88.9
+        { is_null: "field_name" }, // field_name IS NULL
+        { not_null: "field_name" }, // field_name IS NOT NULL
+        { is_empty: "field_name" }, // field_name = ''
+        { not_empty: "field_name" }, // field_name != ''
+        { field: "field_name", between: ["param", "param"] }, // field_name BETWEEN param AND param
+        { field: "field_name", not_between: ["param", "param"] }, // field_name BETWEEN param AND param
+        { field: "field_name", in: ["options_array"] }, // field_name IN (options_array)
+        { field: "field_name", not_in: ["options_array"] }, // field_name NOT IN (options_array)
+        { field: "field_name", like: "value" }, // field_name LIKE '%value%'
+        { field: "field_name", not_like: "value" }, // field_name NOT LIKE '%value%'
+        { field: "field_name", start_with: "value" }, // field_name LIKE 'value%'
+        { field: "field_name", end_with: "value" }, // field_name LIKE '%value'
+        { field: "field_name", find_in_set: "value" }, // FIND_IN_SET(value, field_name)'
+    ],
+    ?group_by: ["fields"], 
+    ?order_by: ["fields"], 
+    ?limit: int, 
+    ?offset: int
+});
+
+const insert = await db.insert({
+    table: "table", 
+    data: {
+        field_name: "value"
+    }
+});
+
+const update = await db.update({
+    table: "table", 
+    ?joins, 
+    data: {
+        field_name: "value"
+    }, 
+    where: [(...)]
+});
+
+const delete = await db.delete({
+    table: "table", 
+    ?joins,
+    where: [(...)]
+});
 ```
 
-To return sql query, you can use `.toString()` method:
+Tou can use `.toString()` method to return a MySQL string:
+
 ```js
-const select_users = db.select({table: "database.table AS table_alias", columns: ["table_alias.column_name", "table_alias.column_name AS column_alias"]}).toString();
+const select = db.select({
+    table: "database.table AS table_alias", 
+    columns: [
+        "table_alias.column_name", 
+        "table_alias.column_name AS column_alias"
+    ]
+}).toString();
 ```
 ```sql
 SELECT table_alias.column_name, table_alias.column_name AS column_alias FROM `database`.`table` AS `table_alias`
 ```
 
-To return pretty sql query, you can use `.format()` method:
+Thanks to [sql-formatter](https://www.npmjs.com/package/sql-formatter), we can return a pretty sql string using the `.format()` method as following:
+
 ```js
-const select_users = db.select({table: "database.table AS alias", fields: { field_alias: "`table_alias`.`real_field_name`"}}).format();
+const select = db.select({
+    table: "database.table AS table_alias", 
+    fields: { 
+        field_alias: "table_alias.real_field_name"
+    }
+}).format();
 ```
 ```sql
 SELECT
-    `table_alias`.`real_columnd_name` AS `field_alias`
+    table_alias.real_columnd_name AS `field_alias`
 FROM 
     `database`.`table` AS `table_alias`
 WHERE (...)
 ```
 
----
+Using `.run()` returns a `<Promise>` with result or throw an error catchable.
 
-A fully select query:
+Examples of use:
 ```js
-const select_params = {
-    table: "database.table AS alias_table",
-    columns: [
-        "alias_table.field AS field_1",
-        "COUNT(alias_table_2.field) AS field_count"
-    ],
-    joins: [
-        [
-            "LEFT",
-            "database.table_2 AS alias_table_2",
-            [
-                "alias_table.field_2 = alias_table_2.field",
-                "alias_table_2.field_2 = NULL",
-            ]
-        ],
-        [
-            "RIGHT",
-            "database.table_3 AS alias_table_3",
-            [
-                "alias_table.field_3 = alias_table_3.field"
-            ]
-        ]
-    ],
-    where: [
-        "params = 1",
-        "alias_table.field = 'value'",
-        [
-            "alias_table_2.field > 18",
-            "alias_table_2.field < 30"
-        ],
-        "alias_table_3.field = NULL",
-    ],
-    order_by: [
-        "alias_table.field ASC",
-        "alias_table_2.field DESC"
-    ],
-    group_by: [
-        "alias_table_3.field"
-    ],
-    limit: 10,
-    offset: 0
-}
+const results = await dbwalker.select(select).run();
+// { success: bool, rows: int, data: array }
 
-const select_user = db.select(select_params).toString();
-```
-```sql
-SELECT alias_table.field AS field_1, COUNT(alias_table_2.field) AS field_count FROM `database`.`table` AS `alias_table` LEFT JOIN `database`.`table_2` AS `alias_table_2` ON (alias_table.field_2 = alias_table_2.field AND alias_table_2.field_2 = NULL) RIGHT JOIN `database`.`table_3` AS `alias_table_3` ON (alias_table.field_3 = alias_table_3.field) WHERE params = 1 AND alias_table.field = 'value' AND (alias_table_2.field > 18 OR alias_table_2.field < 30) AND alias_table_3.field = NULL GROUP BY alias_table_3.field ORDER BY alias_table.field ASC, alias_table_2.field DESC LIMIT 10 OFFSET 0
-```
+dbwalker.insert(insert).run().then(res => { // { success: bool, insert_id: int, affected_rows: int }
+    if(res.success) return dbwalker.select({
+        table_name, 
+        where: [
+            { id: res.insert_id}
+        ]
+    });
+});
+
+dbwalker.update(update).run()// { success: bool, insert_id: int, affected_rows: int }
+    .then(res => console.log(`${res.affected_rows} changed`))
+    .catch(err => console.loc(err));
+
+dbwalker.delete(update).run().catch(err => console.loc(err)).finaly(dbwalker.quit());

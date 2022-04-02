@@ -72,6 +72,8 @@ class QueryBuilder {
             return `${func.toUpperCase()}${args}`;
         }
 
+        if (value === null) return "NULL";
+
         if (value instanceof Date) {
             return `'${value.toISOString().toString().replace(/[T]/g, " ").slice(0, -5)}'`;
         } else if (typeof value === "object") {
@@ -91,11 +93,10 @@ class QueryBuilder {
     }
 
     objectToParam(params) {
+        var operators = ["=", "<", ">", "<=", ">=", "<>", "!="];
         var param = [];
-
-        Object.keys(params).map(key => {
-            // console.log(key);
-            if (key === "field") param.push(`\`${this.trim(params[key], "`")}\``);
+        for (var key in params) {
+            if (key === "field") param.push(params[key]);
 
             else if (key === "is") param.push("= " + this.getValue(params[key]));
             else if (key === "not_is") param.push("!= " + this.getValue(params[key]));
@@ -105,13 +106,15 @@ class QueryBuilder {
             else if (key === "end_with") param.push("LIKE '%" + this.escapeString(params[key]) + "'");
             else if (key === "in") param.push("IN (" + this.getValue(params[key]) + ")");
             else if (key === "not_in") param.push("NOT IN (" + params[key].map(item => this.getValue(item)).join(",") + ")");
-            else if (key === "between") param.push("BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
+            else if (key === "between" || key === "is_between") param.push("BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
             else if (key === "not_between") param.push("NOT BETWEEN " + this.getValue(params[key][0]) + " AND " + this.getValue(params[key][1]));
-            else if (key === "is_null") param.push(`\`${params[key].trim("`")}\` IS NULL`);
-            else if (key === "not_is_null" || key === "is_not_null") param.push(`\`${params[key].trim("`")}\` IS NOT NULL`);
-            else if (key === "is_empty") param.push(`\`${this.trim(params[key], "`")}\` = ''`);
+            else if (key === "is_null") param.push(`${params[key]} IS NULL`);
+            else if (key === "not_null" || key === "is_not_null") param.push(`${params[key]} IS NOT NULL`);
+            else if (key === "is_empty") param.push(`${params[key]} = ''`);
+            else if (key === "not_empty") param.push(`${params[key]} != ''`);
             else if (key === "find_in_set") param.push(`FIND_IN_SET(${this.getValue(params[key])}, \`${this.trim(params["field"], "`")}\`)`);
-        });
+            else param.push(key + " = " + this.getValue(params[key]))
+        }
 
         return param.join(" ");
     }
@@ -132,10 +135,12 @@ class QueryBuilder {
                 });
 
                 query_where_params.push(`(${where_params.join(" OR ")})`);
-            } else if (typeof condition === "object") {
+            } else if (typeof condition === "object" && !Array.isArray(condition) && condition !== null) {
                 query_where_params.push(this.objectToParam(condition));
-            } else {
+            } else if (typeof condition === "string") {
                 query_where_params.push(condition);
+            } else {
+                throw new Error("Invalid where condition");
             }
         });
 
@@ -259,9 +264,6 @@ class QueryBuilder {
 
         const query = `SELECT ${query_columns} FROM ${query_table} ${query_params.join(" ")}`.trim();
 
-        // if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
-
         return query;
     }
 
@@ -298,9 +300,6 @@ class QueryBuilder {
 
         const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(",\n")}`.trim();
 
-        // if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
-
         return query;
     }
 
@@ -334,9 +333,6 @@ class QueryBuilder {
 
         const query = `UPDATE ${query_table} ${query_params.join("  ")}`.trim();
 
-        // if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
-
         return query;
     }
 
@@ -359,9 +355,6 @@ class QueryBuilder {
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
 
         const query = `DELETE FROM ${query_table} ${query_params.join(" ")}`.trim();
-
-        // if (debug) console.log("params", params);
-        if (debug) console.log("query", query);
 
         return query;
     }
