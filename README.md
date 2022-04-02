@@ -149,11 +149,13 @@ WHERE (...)
 Using `.run()` returns a `<Promise>` with result or throw an error catchable.
 
 Examples of use:
+
 ```js
 const results = await dbwalker.select(select).run();
 // { success: bool, rows: int, data: array }
 
-dbwalker.insert(insert).run().then(res => { // { success: bool, insert_id: int, affected_rows: int }
+dbwalker.insert(insert).run() // { success: bool, insert_id: int, affected_rows: int }
+    .then(res => {
     if(res.success) return dbwalker.select({
         table_name, 
         where: [
@@ -167,3 +169,4 @@ dbwalker.update(update).run()// { success: bool, insert_id: int, affected_rows: 
     .catch(err => console.loc(err));
 
 dbwalker.delete(update).run().catch(err => console.loc(err)).finaly(dbwalker.quit());
+```

@@ -125,7 +125,8 @@ class DBWalker extends QueryBuilder {
     }
 
     async quit() {
-        this.db.quit();
+        await this.#db.end();
+        this.#db.quit();
         return;
     }
 
