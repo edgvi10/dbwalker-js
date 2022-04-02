@@ -4,7 +4,6 @@ const { format } = require('sql-formatter');
 const QueryBuilder = require('./querybuilder');
 require('dotenv').config();
 
-
 class DBWalker extends QueryBuilder {
     constructor(connect_params) {
         super();
@@ -55,18 +54,27 @@ class DBWalker extends QueryBuilder {
 
     getConnectionFromString(str) {
         const params = {};
-        const pattern = /mysql:\/\/([^:]+):([^@]+)@([^:]+):([0-9]+)\/([a-z0-9_]+)/;
-        const match = str.match(pattern);
-        if (match) {
-            params.host = match[3];
-            params.port = match[4];
-            params.user = match[1];
-            params.password = match[2];
-            params.database = match[5];
-        } else {
-            throw new Error("Invalid connection string");
-            return;
-        }
+
+        const [driver, data] = str.split("://");
+
+        if (driver !== "mysql") throw new Error("Invalid driver");
+
+        const [host_data, ...user_data_array] = data.split("@").reverse();
+        const [host, database] = host_data.split("/");
+        if (!database) throw new Error("Missing database");
+        const [hostname, port] = host.split(":");
+
+        const user_data = user_data_array.reverse().join("@");
+
+        const [username, ...password_array] = user_data.split(":");
+        const password = password_array.join(":");
+
+        params.host = hostname;
+        params.port = port || 3306;
+        params.user = username;
+        params.password = password;
+        params.database = database;
+
         return params;
     }
 
