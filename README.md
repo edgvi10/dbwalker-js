@@ -56,7 +56,7 @@ You can use `select()`, `insert()`, `update()`, `delete()` methods to build your
 To execute your query, just start with `await` and `.run()` at last:
 
 ```js
-const select = await db.select({table: "table", ?columns, ?joins, ?where, ?group_by, ?order_by, ?limit, ?offset});
+const select = await db.select({table: "table", ?columns[], ?fields{}, ?joins, ?where, ?group_by, ?order_by, ?limit, ?offset});
 const insert = await db.insert({table: "table", data: {param: "value"}});
 const update = await db.update({table: "table", ?joins, data: {param: "value"}, where: ["param = 'value'"]});
 const delete = await db.delete({table: "table", ?joins, where: ["param = 'value'"]});
@@ -64,10 +64,22 @@ const delete = await db.delete({table: "table", ?joins, where: ["param = 'value'
 
 To return sql query, you can use `.toString()` method:
 ```js
-const select_users = db.select({table: "database.table AS alias"}).toString();
+const select_users = db.select({table: "database.table AS table_alias", columns: ["table_alias.column_name", "table_alias.column_name AS column_alias"]}).toString();
 ```
 ```sql
-SELECT `alias`.* FROM `database`.`table` AS `alias`
+SELECT table_alias.column_name, table_alias.column_name AS column_alias FROM `database`.`table` AS `table_alias`
+```
+
+To return pretty sql query, you can use `.format()` method:
+```js
+const select_users = db.select({table: "database.table AS alias", fields: { field_alias: "`table_alias`.`real_field_name`"}}).format();
+```
+```sql
+SELECT
+    `table_alias`.`real_columnd_name` AS `field_alias`
+FROM 
+    `database`.`table` AS `table_alias`
+WHERE (...)
 ```
 
 ---
