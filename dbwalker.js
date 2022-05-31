@@ -17,8 +17,8 @@ class DBWalker extends QueryBuilder {
                 if (connect_params.host) [params.host, params.port] = connect_params.host.split(":");
                 if (connect_params.port) params.port = parseInt(connect_params.port);
                 if (connect_params.user) params.user = connect_params.user;
-                if (connect_params.pass || connect_params.password) params.password = connect_params.pass ?? connect_params.password;
-                if (connect_params.base || connect_params.database) params.database = connect_params.base ?? connect_params.database;
+                if (connect_params.pass || connect_params.password) params.password = connect_params.pass ? connect_params.pass : connect_params.password;
+                if (connect_params.base || connect_params.database) params.database = connect_params.base ? connect_params.base : connect_params.database;
             } else if (typeof connect_params === "array") {
                 // check if second param is port or user
                 params.host = connect_params[0];
