@@ -1,11 +1,14 @@
 {
     "name": "dbwalker",
-    "description": "Library to walking on database using serverless-mysql.",
-    "version": "0.0.45",
+    "description": "Library to walking on database.",
+    "version": "0.0.46",
     "type": "commonjs",
     "main": "dbwalker.js",
     "exports": "./dbwalker.js",
     "author": "Eduardo Vieira <edgvi10@gmail.com>",
+    "contributors": [
+        "Fernando Oliveira <fernandinhonco@gmail.com>"
+    ],
     "license": "MIT",
     "keywords": [
         "mysql",
@@ -23,6 +26,7 @@
     "dependencies": {
         "dotenv": "^16.0.0",
         "serverless-mysql": "^1.5.4",
+        "react-native-sqlite-storage": "6.0.1",
         "sql-formatter": "^4.0.2"
     },
     "devDependencies": {
