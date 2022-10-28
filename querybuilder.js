@@ -181,6 +181,7 @@ class QueryBuilder {
         if (typeof raw_fields === "string") {
             fields.push(raw_fields);
         } else if (Array.isArray(raw_fields)) {
+
             raw_fields.map(field => {
                 if (typeof field === "string") {
                     fields.push(field);
@@ -188,7 +189,9 @@ class QueryBuilder {
                     fields.push(`${field.field} AS \`${field.alias}\``);
                 }
             });
+
         } else if (typeof raw_fields === "object") {
+
             Object.keys(raw_fields).map(key => {
                 if (typeof raw_fields[key] === "string") {
                     fields.push(`${raw_fields[key]} AS \`${key}\``);
@@ -216,6 +219,7 @@ class QueryBuilder {
                     });
                 }
             });
+
         }
 
         return fields;

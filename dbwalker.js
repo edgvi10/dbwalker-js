@@ -87,7 +87,7 @@ class DBWalker extends QueryBuilder {
             await this.#db.end();
             return result;
         } catch (error) {
-            console.log("[DB WALKER] query() ", error.message);
+            // console.log("[DB WALKER] query() ", error.message);
             const result = {};
             if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
                 error.code = "ACCESS DENIED";
