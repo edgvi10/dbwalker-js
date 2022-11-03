@@ -324,9 +324,11 @@ class QueryBuilder {
 
         const joins = params.joins ? params.joins : [];
         const where = params.where ? params.where : [];
+        const having = params.having ? params.having : [];
 
         const query_joins_params = this.buildJoin(joins);
         const query_where_params = this.buildWhere(where);
+        const query_having_params = this.buildWhere(having);
 
         // required
         const query_table = table.fullname;
@@ -337,6 +339,7 @@ class QueryBuilder {
         if (query_joins_params) query_params.push(query_joins_params);
         if (query_set_params) query_params.push(`SET ${query_set}`);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
+        if (query_having_params) query_params.push(`HAVING ${query_having_params}`);
 
         const query = `UPDATE ${query_table} ${query_params.join("  ")}`.trim();
 
