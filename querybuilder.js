@@ -241,6 +241,7 @@ class QueryBuilder {
 
         const joins = params.joins ? params.joins : [];
         const where = params.where ? params.where : [];
+        const having = params.having ? params.having : [];
         const group_by = params.group_by ? params.group_by : [];
         const order_by = params.order_by ? params.order_by : [];
         const limit = params.limit ? params.limit : null;
@@ -249,6 +250,7 @@ class QueryBuilder {
         const query_columns_params = Array.isArray(columns) ? columns : [columns];
         const query_joins_params = this.buildJoin(joins);
         const query_where_params = this.buildWhere(where);
+        const query_having_params = this.buildWhere(having);
 
         const query_group_params = Array.isArray(group_by) ? group_by : [group_by];
         const query_order_params = Array.isArray(order_by) ? order_by : [order_by];
@@ -262,6 +264,7 @@ class QueryBuilder {
         if (query_joins_params) query_params.push(query_joins_params);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
         if (query_group_params.length > 0) query_params.push(`GROUP BY ${query_group_params.join(", ")}`);
+        if (query_having_params) query_params.push(`HAVING ${query_having_params}`);
         if (query_order_params.length > 0) query_params.push(`ORDER BY ${query_order_params.join(", ")}`);
         if (limit) query_params.push(`LIMIT ${parseInt(limit)}`);
         if (offset || offset === 0) query_params.push(`OFFSET ${parseInt(offset)}`);
