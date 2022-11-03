@@ -349,11 +349,10 @@ class QueryBuilder {
     buildDelete(params, debug = false) {
         const table = this.tableName(params.table);
 
-        const joins = params.joins ? params.joins : [];
-        if (!params.where || params.length === 0) return "where is empty";
-        const where = params.where;
+        if (!params.secure === false && !params.where) return "delete without where is not allowed";
 
-        const query_joins_params = this.buildJoin(joins);
+        const where = params.where ? params.where : [];
+
         const query_where_params = this.buildWhere(where);
 
         // required
@@ -361,7 +360,6 @@ class QueryBuilder {
 
         // optional
         const query_params = [];
-        if (query_joins_params) query_params.push(query_joins_params);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
 
         const query = `DELETE FROM ${query_table} ${query_params.join(" ")}`.trim();
