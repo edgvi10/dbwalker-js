@@ -262,6 +262,7 @@ class QueryBuilder {
 
         // optional
         const query_params = [];
+        query_params.push(`${query_columns}`);
         if (query_table) query_params.push(`FROM ${query_table}`);
         if (query_joins_params) query_params.push(query_joins_params);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
@@ -271,7 +272,7 @@ class QueryBuilder {
         if (limit) query_params.push(`LIMIT ${parseInt(limit)}`);
         if (offset || offset === 0) query_params.push(`OFFSET ${parseInt(offset)}`);
 
-        const query = `SELECT ${query_columns}${query_params.join(" ")};`.trim();
+        const query = `SELECT ${query_params.join(" ")};`.trim();
 
         return query;
     }
@@ -306,8 +307,12 @@ class QueryBuilder {
         } else {
             return "data is empty";
         }
+        const query_params = [];
+        query_params.push(`${query_table}`);
+        query_params.push(`(\`${data_columns.join('\`, \`')}\`)`);
+        query_params.push(`VALUES \n${data_values.join(",\n")}`);
 
-        const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(",\n")};`.trim();
+        const query = `INSERT INTO ${query_params.join(" ")};`.trim();
 
         return query;
     }
@@ -338,12 +343,13 @@ class QueryBuilder {
 
         // optional
         const query_params = [];
+        query_params.push(`${query_table}`);
         if (query_joins_params) query_params.push(query_joins_params);
         if (query_set_params) query_params.push(`SET ${query_set}`);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
         if (query_having_params) query_params.push(`HAVING ${query_having_params}`);
 
-        const query = `UPDATE ${query_table} ${query_params.join("  ")};`.trim();
+        const query = `UPDATE ${query_params.join(" ")};`.trim();
 
         return query;
     }
@@ -362,9 +368,10 @@ class QueryBuilder {
 
         // optional
         const query_params = [];
+        query_params.push(`FROM ${query_table}`);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
 
-        const query = `DELETE FROM ${query_table} ${query_params.join(" ")}`.trim();
+        const query = `DELETE ${query_params.join(" ")};`.trim();
 
         return query;
     }
