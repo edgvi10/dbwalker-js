@@ -82,7 +82,7 @@ class QueryBuilder {
                 return `${key.toUpperCase()}(${this.getValue(value[key])})`;
         } else {
             switch (typeof value) {
-                case "string": value = (value.slice(0, 1) === "`" && value.slice(-1) === "`") ? value : "'" + this.escapeString(value) + "'"; break;
+                case "string": value = (value.slice(0, 1) === "`" && value.slice(-1) === "`") ? value : "'" + this.escapeString(value).trim("'") + "'"; break;
                 case "number": value = parseFloat(value); break;
                 case "null": value = "NULL"; break;
                 case "boolean": value = value ? 1 : 0; break;
@@ -96,7 +96,7 @@ class QueryBuilder {
         var operators = ["=", "<", ">", "<=", ">=", "<>", "!="];
         var param = [];
         for (var key in params) {
-            if (key === "field") param.push(params[key]);
+            if (key === "field" || key === "column") param.push(params[key]);
 
             else if (key === "is") param.push("= " + this.getValue(params[key]));
             else if (key === "not_is") param.push("!= " + this.getValue(params[key]));
@@ -175,7 +175,7 @@ class QueryBuilder {
         return query_join_params.length ? query_join_params.join(" ") : null;
     }
 
-    getFields(raw_fields) {
+    getColumn(raw_fields) {
         const fields = [];
 
         if (typeof raw_fields === "string") {
@@ -231,23 +231,24 @@ class QueryBuilder {
 
     // builder options
     buildSelect(params, debug = false) {
-        const table = this.tableName(params.table);
+        const table = (params.table) ? this.tableName(params.table) : null;
 
         var columns = [];
-        if (params.fields) columns = this.getFields(params.fields);
-        else if (params.columns) columns = this.getFields(params.columns);
+        if (typeof params.columns === "string" || typeof params.fields === "string") columns.push(params.columns || params.fields);
+        else if (params.columns || params.fields) columns = params.columns || params.fields;
 
-        if (columns.length === 0) columns = [`${table.alias ? table.alias : table.name}.*`];
+        const columns_array = this.getColumn(columns);
+        if (table && columns_array.length === 0) columns_array.push(`${table.alias ? table.alias : table.name}.*`);
 
         const joins = params.joins ? params.joins : [];
         const where = params.where ? params.where : [];
         const having = params.having ? params.having : [];
         const group_by = params.group_by ? params.group_by : [];
         const order_by = params.order_by ? params.order_by : [];
-        const limit = params.limit ? params.limit : null;
-        const offset = params.offset ? params.offset : null;
+        const limit = (!isNaN(params.limit)) ? params.limit : null;
+        const offset = (!isNaN(params.offset)) ? params.offset : null;
 
-        const query_columns_params = Array.isArray(columns) ? columns : [columns];
+        const query_columns_params = columns_array;
         const query_joins_params = this.buildJoin(joins);
         const query_where_params = this.buildWhere(where);
         const query_having_params = this.buildWhere(having);
@@ -256,11 +257,12 @@ class QueryBuilder {
         const query_order_params = Array.isArray(order_by) ? order_by : [order_by];
 
         // required
-        const query_table = table.fullname;
+        const query_table = (table) ? table.fullname : null;
         const query_columns = query_columns_params.join(", ");
 
         // optional
         const query_params = [];
+        if (query_table) query_params.push(`FROM ${query_table}`);
         if (query_joins_params) query_params.push(query_joins_params);
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
         if (query_group_params.length > 0) query_params.push(`GROUP BY ${query_group_params.join(", ")}`);
@@ -269,7 +271,7 @@ class QueryBuilder {
         if (limit) query_params.push(`LIMIT ${parseInt(limit)}`);
         if (offset || offset === 0) query_params.push(`OFFSET ${parseInt(offset)}`);
 
-        const query = `SELECT ${query_columns} FROM ${query_table} ${query_params.join(" ")}`.trim();
+        const query = `SELECT ${query_columns}${query_params.join(" ")};`.trim();
 
         return query;
     }
@@ -305,7 +307,7 @@ class QueryBuilder {
             return "data is empty";
         }
 
-        const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(",\n")}`.trim();
+        const query = `INSERT INTO ${query_table} (\`${data_columns.join('\`, \`')}\`) VALUES \n${data_values.join(",\n")};`.trim();
 
         return query;
     }
@@ -341,7 +343,7 @@ class QueryBuilder {
         if (query_where_params) query_params.push(`WHERE ${query_where_params}`);
         if (query_having_params) query_params.push(`HAVING ${query_having_params}`);
 
-        const query = `UPDATE ${query_table} ${query_params.join("  ")}`.trim();
+        const query = `UPDATE ${query_table} ${query_params.join("  ")};`.trim();
 
         return query;
     }
@@ -368,4 +370,4 @@ class QueryBuilder {
     }
 }
 
-module.exports = QueryBuilder;
+module.exports = QueryBuilder; 

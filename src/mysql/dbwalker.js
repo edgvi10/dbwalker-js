@@ -1,7 +1,7 @@
 // import mysql from 'serverless-mysql';
 const mysql = require('serverless-mysql');
 const { format } = require('sql-formatter');
-const QueryBuilder = require('./querybuilder');
+const QueryBuilder = require('../querybuilder.js');
 require('dotenv').config();
 
 class DBWalker extends QueryBuilder {
@@ -83,11 +83,15 @@ class DBWalker extends QueryBuilder {
 
     async query(sql, values) {
         try {
-            const result = await this.#db.query(sql, values);
-            await this.#db.end();
-            return result;
+            if (!sql) sql = this.sql;
+            if (!sql) throw new Error("SQL is empty");
+
+            if (!values) values = this.values;
+
+            const sql_result = await this.#db.query(sql, values);
+            // await this.#db.end();
+            return (Array.isArray(sql_result)) ? Object.values(sql_result).map(row => { return { ...row } }) : { ...sql_result };
         } catch (error) {
-            // console.log("[DB WALKER] query() ", error.message);
             const result = {};
             if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
                 error.code = "ACCESS DENIED";
@@ -97,6 +101,7 @@ class DBWalker extends QueryBuilder {
             if (error.code) result.code = error.code;
             result.message = error.sqlMessage ? error.sqlMessage : error.message;
             result.sql = sql;
+            result.values = values;
 
             throw result;
         }
@@ -124,6 +129,45 @@ class DBWalker extends QueryBuilder {
         return result;
     }
 
+    setQuery(sql) {
+        this.sql = sql;
+        return this;
+    }
+
+    setValues(values) {
+        this.values = (Array.isArray(values) || typeof values === "object") ? values : [values];
+        this.values = Object.keys(this.values).map(key => this.values[key] = this.escapeString(this.values[key]));
+
+        if (this.sql) {
+            if (Array.isArray(this.values)) {
+                this.sql = this.sql.replace(/\?/g, (match, offset, string) => {
+                    if (values.length > 0) {
+                        const value = values.shift();
+                        if (typeof value === "string") return `'${value}'`;
+                        else return value;
+                    } else return match;
+                });
+            } else {
+                Object.keys(this.values).map((key, index) => {
+                    if (typeof this.values[key] === "string") this.values[key] = `'${this.values[key]}'`;
+
+                    this.sql = this.sql.replace(`:${key}`, this.values[key]);
+                });
+            }
+        }
+
+        return this;
+    }
+
+    async connect() {
+        try {
+            await this.#db.connect();
+            return true;
+        } catch (error) {
+            return error;
+        }
+    }
+
     async quit() {
         await this.#db.end();
         this.#db.quit();
@@ -134,8 +178,12 @@ class DBWalker extends QueryBuilder {
         return this.sql;
     }
 
-    format() {
+    toFormat() {
         return format(this.sql, { language: "mysql", indent: "    " });
+    }
+
+    format() {
+        return this.toFormat();
     }
 
     async describe(table_name) {
@@ -170,10 +218,32 @@ class DBWalker extends QueryBuilder {
         }
     }
 
+    async now(timezone) {
+        try {
+            if (timezone) await this.query(`SET time_zone='${timezone}'`);
+            const result = await this.query(`SELECT CAST(NOW() AS CHAR) AS now`);
+            return result[0].now;
+        } catch (error) {
+            throw new Error("Now generation failed:" + error.message);
+        }
+    }
 
-    setValues(values) {
-        this.values = values;
-        return this;
+    async md5(string) {
+        try {
+            const result = await this.query(`SELECT MD5('${string}') AS md5`);
+            return result[0].md5;
+        } catch (error) {
+            throw new Error("MD5 generation failed");
+        }
+    }
+
+    async sha1(string) {
+        try {
+            const result = await this.query(`SELECT SHA1('${string}') AS sha1`);
+            return result[0].sha1;
+        } catch (error) {
+            throw new Error("SHA1 generation failed");
+        }
     }
 
     // execute options

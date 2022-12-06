@@ -26,10 +26,6 @@
     "dependencies": {
         "dotenv": "^16.0.0",
         "serverless-mysql": "^1.5.4",
-        "react-native-sqlite-storage": "6.0.1",
         "sql-formatter": "^4.0.2"
-    },
-    "devDependencies": {
-        "nodemon": "^2.0.15"
     }
 }
