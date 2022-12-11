@@ -36,20 +36,31 @@ class DBWalker extends QueryBuilder {
 
             if (!params.port) params.port = 3306;
 
+            if (!params.timezone) params.timezone = connect_params.timezone ? connect_params.timezone : "-00:00";
+            params.typeCast = connect_params.typecast ? connect_params.typecast : true;
+
+            this.timezone = params.timezone;
+
             this.#db = mysql({ config: params });
         } else {
             // from .env
             if (process.env.DBWALKER_STRING)
                 this.#db = mysql({ config: this.getConnectionFromString(process.env.DBWALKER_STRING) });
-            else this.#db = mysql({
-                config: {
-                    host: process.env.DBWALKER_HOST,
-                    port: process.env.DBWALKER_PORT ? process.env.DBWALKER_PORT : 3306,
-                    user: process.env.DBWALKER_USER,
-                    password: process.env.DBWALKER_PASS,
-                    database: process.env.DBWALKER_BASE,
-                }
-            });
+            else {
+                const required = ["DBWALKER_HOST", "DBWALKER_USER", "DBWALKER_PASS", "DBWALKER_BASE"];
+                for (const param of required)
+                    if (!process.env[param]) throw new Error(`Missing ${param} environment variable`);
+
+                this.#db = mysql({
+                    config: {
+                        host: process.env.DBWALKER_HOST,
+                        port: process.env.DBWALKER_PORT ? process.env.DBWALKER_PORT : 3306,
+                        user: process.env.DBWALKER_USER,
+                        password: process.env.DBWALKER_PASS,
+                        database: process.env.DBWALKER_BASE,
+                    }
+                });
+            }
         }
 
         return this;
@@ -72,11 +83,18 @@ class DBWalker extends QueryBuilder {
         const [username, ...password_array] = user_data.split(":");
         const password = password_array.join(":");
 
+        const [database_name, ...connect_params] = database.split("?");
+
         params.host = hostname;
-        params.port = port || 3306;
+        params.port = port ? parseInt(port) : 3306;
         params.user = username;
         params.password = password;
-        params.database = database;
+        params.database = database_name;
+
+        if (connect_params.length > 0) for (const param of connect_params) {
+            const [key, value] = param.split("=");
+            params[key] = value;
+        }
 
         return params;
     }
@@ -89,8 +107,16 @@ class DBWalker extends QueryBuilder {
             if (!values) values = this.values;
 
             const sql_result = await this.#db.query(sql, values);
-            // await this.#db.end();
-            return (Array.isArray(sql_result)) ? Object.values(sql_result).map(row => { return { ...row } }) : { ...sql_result };
+            if (Array.isArray(sql_result)) {
+                const rows = [];
+                for (const row of Object.values(sql_result)) {
+                    rows.push({ ...row });
+                }
+
+                return rows;
+            } else {
+                return { ...sql_result };
+            }
         } catch (error) {
             const result = {};
             if (!error.code && error.message && error.message.toString().indexOf("ER_ACCESS_DENIED_ERROR") > -1) {
@@ -184,6 +210,19 @@ class DBWalker extends QueryBuilder {
 
     format() {
         return this.toFormat();
+    }
+
+    async getTables(table_name) {
+        const query = (table_name) ? "SHOW TABLES LIKE '%" + table_name + "%'" : "SHOW TABLES";
+        const select_tables = await this.query(query);
+        const tables = [];
+        for (const row of select_tables) {
+            try {
+                tables.push(Object.values(row)[0]);
+            } catch (error) { }
+        }
+
+        return tables;
     }
 
     async describe(table_name) {
