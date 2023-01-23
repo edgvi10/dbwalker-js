@@ -1,7 +1,7 @@
 {
     "name": "dbwalker",
     "description": "Library to walking on database.",
-    "version": "0.0.52",
+    "version": "0.0.53",
     "type": "commonjs",
     "main": "index.js",
     "exports": "./index.js",
