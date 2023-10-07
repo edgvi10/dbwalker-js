@@ -155,6 +155,24 @@ class DBWalker extends QueryBuilder {
         return result;
     }
 
+    async kill(id) {
+        try {
+            await this.query(`KILL ${id}`);
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async showProcessList() {
+        try {
+            const result = await this.query("SELECT ID, HOST, USER, DB, TIME FROM information_schema.processlist");
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     setQuery(sql) {
         this.sql = sql;
         return this;
@@ -195,9 +213,26 @@ class DBWalker extends QueryBuilder {
     }
 
     async quit() {
-        await this.#db.end();
-        this.#db.quit();
-        return;
+        try {
+            await this.#db.end();
+            this.#db.quit();
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async close() {
+        return await this.quit();
+    }
+
+    async ping() {
+        try {
+            await this.#db.ping();
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     toString() {
