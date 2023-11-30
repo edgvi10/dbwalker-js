@@ -157,7 +157,7 @@ class DBWalker extends QueryBuilder {
 
     async kill(id) {
         try {
-            await this.query(`KILL ${id}`);
+            await this.query(`KILL CONNECTION  ${id}`);
             return true;
         } catch (error) {
             throw error;

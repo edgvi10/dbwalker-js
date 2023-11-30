@@ -78,8 +78,13 @@ class QueryBuilder {
             return `'${value.toISOString().toString().replace(/[T]/g, " ").slice(0, -5)}'`;
         } else if (typeof value === "object") {
             const key = Object.keys(value)[0];
-            if (accepted_functions.includes(key.toUpperCase()))
-                return `${key.toUpperCase()}(${this.getValue(value[key])})`;
+            if (typeof key === "string")
+                if (accepted_functions.includes(key.toUpperCase()))
+                    return `${key.toUpperCase()}(${this.getValue(value[key])})`;
+                else
+                    return this.getValue(value[key]);
+            else
+                return value[key] ? value[key] : "NULL";
         } else {
             switch (typeof value) {
                 case "string": value = (value.slice(0, 1) === "`" && value.slice(-1) === "`") ? value : "'" + this.escapeString(value).trim("'") + "'"; break;
