@@ -62,15 +62,16 @@ class QueryBuilder {
     }
 
     getValue(value, accepted_functions = []) {
-        accepted_functions = [...accepted_functions, "UUID", "DATE", "NOW", "CURDATE", "CURTIME", "UNIX_TIMESTAMP", "MD5", "SHA1", "SHA2", "RAND", "LENGTH", "LOWER", "UPPER", "SUBSTRING", "CONCAT", "CONCAT_WS", "REPLACE", "TRIM", "LEFT", "RIGHT", "LTRIM", "RTRIM"];
+        accepted_functions = [
+            ...accepted_functions, "UUID", "DATE", "NOW", "CURDATE", "CURTIME", "UNIX_TIMESTAMP", "MD5", "SHA1", "SHA2", "RAND", "LENGTH", "LOWER", "UPPER", "SUBSTRING", "CONCAT", "CONCAT_WS", "REPLACE", "TRIM", "LEFT", "RIGHT", "LTRIM", "RTRIM"
+        ];
 
-        const regex = new RegExp(`^(${accepted_functions.join("|")})\((.*)\)$`, "i");
-        const is_function = regex.test(value);
+        for (const accepted_function of accepted_functions) if (value.toUpperCase().startsWith(accepted_function + "(")) return value;
 
-        if (is_function) {
-            const [, func, args] = value.match(regex);
-            return `${func.toUpperCase()}${args}`;
-        }
+        // if (is_function) {
+        //     const [, func, args] = value.match(regex);
+        //     return `${func.toUpperCase()}${args}`;
+        // }
 
         if (value === null) return "NULL";
 
