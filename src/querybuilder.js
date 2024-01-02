@@ -66,12 +66,9 @@ class QueryBuilder {
             ...accepted_functions, "UUID", "DATE", "NOW", "CURDATE", "CURTIME", "UNIX_TIMESTAMP", "MD5", "SHA1", "SHA2", "RAND", "LENGTH", "LOWER", "UPPER", "SUBSTRING", "CONCAT", "CONCAT_WS", "REPLACE", "TRIM", "LEFT", "RIGHT", "LTRIM", "RTRIM"
         ];
 
-        for (const accepted_function of accepted_functions) if (value.toUpperCase().startsWith(accepted_function + "(")) return value;
-
-        // if (is_function) {
-        //     const [, func, args] = value.match(regex);
-        //     return `${func.toUpperCase()}${args}`;
-        // }
+        for (const accepted_function of accepted_functions)
+            if (typeof value == "string" && value.toUpperCase().startsWith(accepted_function + "("))
+                return value;
 
         if (value === null) return "NULL";
 
